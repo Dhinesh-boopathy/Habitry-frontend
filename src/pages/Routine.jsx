@@ -17,13 +17,14 @@ import { API_BASE } from "../config/api";
 
 export default function Routine() {
   const navigate = useNavigate();
+
   const isLoggedIn = !!localStorage.getItem("token");
   const isGuest = !isLoggedIn;
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [todayCompleted, setTodayCompleted] = useState(false);
+
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
 
@@ -66,7 +67,6 @@ export default function Routine() {
       localStorage.removeItem("guestStreak");
       return { current: 0, best: 0, lastDate: null };
     }
-
     return data;
   };
 
@@ -89,7 +89,9 @@ export default function Routine() {
         if (isLoggedIn) {
           routine = await authFetch("/routine/active");
         } else {
-          const res = await fetch(`${API_BASE}/routine/public/default`);
+          const res = await fetch(
+            `${API_BASE}/routine/public/default`
+          );
           routine = await res.json();
         }
 
@@ -102,6 +104,7 @@ export default function Routine() {
           done: false,
         }));
 
+        /* ✅ RESTORE GUEST PROGRESS */
         if (isGuest) {
           const saved = getGuestProgress()[todayKey()] || [];
           formatted = formatted.map((t) => ({
@@ -111,6 +114,24 @@ export default function Routine() {
 
           if (saved.length === formatted.length && formatted.length > 0) {
             setTodayCompleted(true);
+          }
+        }
+
+        /* ✅ RESTORE LOGGED-IN PROGRESS (🔥 MAIN FIX) */
+        if (isLoggedIn) {
+          const progress = await authFetch("/progress/today");
+
+          if (progress?.completedTaskIds?.length) {
+            formatted = formatted.map((t) => ({
+              ...t,
+              done: progress.completedTaskIds.includes(t.id),
+            }));
+
+            if (
+              progress.completedTaskIds.length === formatted.length
+            ) {
+              setTodayCompleted(true);
+            }
           }
         }
 
@@ -153,12 +174,16 @@ export default function Routine() {
 
   const saveTodayProgress = async () => {
     if (!isLoggedIn) return;
+
     await authFetch("/progress", {
       method: "POST",
       body: JSON.stringify({
         date: todayKey(),
-        completed: total,
+        completed: done,
         total,
+        completedTaskIds: tasks
+          .filter((t) => t.done)
+          .map((t) => t.id),
       }),
     });
   };
@@ -174,7 +199,9 @@ export default function Routine() {
 
         const prev = getGuestStreak();
         const current =
-          prev.lastDate === yesterdayKey() ? prev.current + 1 : 1;
+          prev.lastDate === yesterdayKey()
+            ? prev.current + 1
+            : 1;
 
         const best = Math.max(prev.best || 0, current);
 
@@ -201,10 +228,24 @@ export default function Routine() {
         t.id === id ? { ...t, done: !t.done } : t
       );
 
+      const completedTaskIds = updated
+        .filter((t) => t.done)
+        .map((t) => t.id);
+
+      /* ✅ SAVE PROGRESS ON TOGGLE */
       if (isGuest) {
         saveGuestProgress(
           updated.filter((t) => t.done).map((t) => t.title)
         );
+      } else {
+        authFetch("/progress/today", {
+          method: "POST",
+          body: JSON.stringify({
+            date: todayKey(),
+            completedTaskIds,
+            total,
+          }),
+        });
       }
 
       return updated;
@@ -218,11 +259,7 @@ export default function Routine() {
 
   /* -------------------- UI -------------------- */
   return (
-    <div
-      className="min-h-[calc(100vh-64px)]
-                 bg-slate-100 dark:bg-slate-900
-                 text-slate-800 dark:text-slate-100"
-    >
+    <div className="min-h-[calc(100vh-64px)] bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <RoutineHeader
           streak={streak}
@@ -231,7 +268,6 @@ export default function Routine() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* LEFT */}
           <div className="lg:col-span-2">
             <RoutinePanel>
               <Confetti
@@ -239,8 +275,7 @@ export default function Routine() {
                 onDone={() => setShowConfetti(false)}
               />
 
-              <h2 className="text-xl font-semibold mb-4
-                             text-slate-800 dark:text-slate-100">
+              <h2 className="text-xl font-semibold mb-4">
                 Today’s Routine
               </h2>
 
@@ -249,7 +284,7 @@ export default function Routine() {
               )}
 
               {loading ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
+                <p className="text-sm text-slate-500 mt-4">
                   Loading routine…
                 </p>
               ) : todayCompleted ? (
@@ -268,7 +303,6 @@ export default function Routine() {
             </RoutinePanel>
           </div>
 
-          {/* RIGHT */}
           <div className="space-y-4">
             {isGuest && !hideGuestBanner && (
               <GuestBanner
@@ -281,7 +315,11 @@ export default function Routine() {
               streak={streak}
               bestStreak={bestStreak}
               progress={progress}
-              onClick={isLoggedIn ? () => setShowCalendar(true) : null}
+              onClick={
+                isLoggedIn
+                  ? () => setShowCalendar(true)
+                  : null
+              }
             />
           </div>
         </div>
@@ -291,40 +329,6 @@ export default function Routine() {
             onClose={() => setShowCalendar(false)}
             total={total}
           />
-        )}
-
-        {showLoginPopup && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div
-              className="bg-white dark:bg-slate-800
-                         p-6 rounded-xl w-80 text-center"
-            >
-              <h2 className="text-lg font-bold mb-2">
-                Login required
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-                Login to create and save your own routine.
-              </p>
-
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => setShowLoginPopup(false)}
-                  className="px-4 py-2 border rounded-lg
-                             border-slate-300 dark:border-slate-600"
-                >
-                  Continue as Guest
-                </button>
-
-                <button
-                  onClick={() => navigate("/login")}
-                  className="px-4 py-2 bg-blue-600
-                             text-white rounded-lg"
-                >
-                  Login
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>
