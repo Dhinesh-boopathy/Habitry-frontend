@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import CalendarPopup from "../components/CalenderPopup.jsx";
@@ -36,7 +36,8 @@ export default function Routine() {
     localStorage.getItem("hideGuestBanner") === "true"
   );
 
-  /* -------------------- DATE HELPERS -------------------- */
+  const taskRefs = useRef({});
+
   const todayKey = () => new Date().toISOString().split("T")[0];
   const yesterdayKey = () =>
     new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -89,9 +90,7 @@ export default function Routine() {
         if (isLoggedIn) {
           routine = await authFetch("/routine/active");
         } else {
-          const res = await fetch(
-            `${API_BASE}/routine/public/default`
-          );
+          const res = await fetch(`${API_BASE}/routine/public/default`);
           routine = await res.json();
         }
 
@@ -104,7 +103,6 @@ export default function Routine() {
           done: false,
         }));
 
-        /* ✅ RESTORE GUEST PROGRESS */
         if (isGuest) {
           const saved = getGuestProgress()[todayKey()] || [];
           formatted = formatted.map((t) => ({
@@ -117,7 +115,6 @@ export default function Routine() {
           }
         }
 
-        /* ✅ RESTORE LOGGED-IN PROGRESS (🔥 MAIN FIX) */
         if (isLoggedIn) {
           const progress = await authFetch("/progress/today");
 
@@ -127,9 +124,7 @@ export default function Routine() {
               done: progress.completedTaskIds.includes(t.id),
             }));
 
-            if (
-              progress.completedTaskIds.length === formatted.length
-            ) {
+            if (progress.completedTaskIds.length === formatted.length) {
               setTodayCompleted(true);
             }
           }
@@ -138,7 +133,6 @@ export default function Routine() {
         setTasks(formatted);
       } catch (err) {
         console.error(err);
-        alert("Failed to load routine");
       } finally {
         setLoading(false);
       }
@@ -147,10 +141,20 @@ export default function Routine() {
     fetchRoutine();
   }, [isLoggedIn]);
 
-  /* -------------------- FETCH AUTH STREAK -------------------- */
+  /* -------------------- AUTO SCROLL -------------------- */
+  useEffect(() => {
+    if (loading || todayCompleted) return;
+    const firstIncomplete = tasks.find((t) => !t.done);
+    if (!firstIncomplete) return;
+    taskRefs.current[firstIncomplete.id]?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [tasks, loading, todayCompleted]);
+
+  /* -------------------- STREAKS -------------------- */
   useEffect(() => {
     if (!isLoggedIn) return;
-
     authFetch("/progress/streaks")
       .then((d) => {
         setStreak(d.streak);
@@ -159,7 +163,6 @@ export default function Routine() {
       .catch(console.error);
   }, [isLoggedIn]);
 
-  /* -------------------- INIT GUEST STREAK -------------------- */
   useEffect(() => {
     if (!isGuest) return;
     const gs = getGuestStreak();
@@ -172,54 +175,7 @@ export default function Routine() {
   const done = tasks.filter((t) => t.done).length;
   const progress = total ? Math.round((done / total) * 100) : 0;
 
-  const saveTodayProgress = async () => {
-    if (!isLoggedIn) return;
-
-    await authFetch("/progress", {
-      method: "POST",
-      body: JSON.stringify({
-        date: todayKey(),
-        completed: done,
-        total,
-        completedTaskIds: tasks
-          .filter((t) => t.done)
-          .map((t) => t.id),
-      }),
-    });
-  };
-
-  /* -------------------- DAY COMPLETE -------------------- */
-  useEffect(() => {
-    if (done === total && total > 0 && !todayCompleted) {
-      if (isLoggedIn) {
-        saveTodayProgress();
-        setShowConfetti(true);
-      } else {
-        saveGuestProgress(tasks.map((t) => t.title));
-
-        const prev = getGuestStreak();
-        const current =
-          prev.lastDate === yesterdayKey()
-            ? prev.current + 1
-            : 1;
-
-        const best = Math.max(prev.best || 0, current);
-
-        saveGuestStreak({
-          current,
-          best,
-          lastDate: todayKey(),
-        });
-
-        setStreak(current);
-        setBestStreak(best);
-      }
-
-      setTodayCompleted(true);
-    }
-  }, [done, total]);
-
-  /* -------------------- ACTIONS -------------------- */
+  /* -------------------- TOGGLE TASK -------------------- */
   const toggleTask = (id) => {
     if (todayCompleted) return;
 
@@ -232,7 +188,6 @@ export default function Routine() {
         .filter((t) => t.done)
         .map((t) => t.id);
 
-      /* ✅ SAVE PROGRESS ON TOGGLE */
       if (isGuest) {
         saveGuestProgress(
           updated.filter((t) => t.done).map((t) => t.title)
@@ -252,22 +207,33 @@ export default function Routine() {
     });
   };
 
-  const handleCreateClick = () => {
-    if (!isLoggedIn) return setShowLoginPopup(true);
-    navigate("/create-routine");
-  };
-
   /* -------------------- UI -------------------- */
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+    <div className="min-h-[calc(100vh-64px)] bg-slate-100 dark:bg-slate-900">
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <RoutineHeader
           streak={streak}
+          isLoggedIn={isLoggedIn}
           onStreakClick={() => isLoggedIn && setShowCalendar(true)}
-          onCreate={handleCreateClick}
+          onCreate={() =>
+            !isLoggedIn ? setShowLoginPopup(true) : navigate("/create-routine")
+          }
+          onMonthly={() => navigate("/monthly-sheet")}
+          onSummary={() => navigate("/summary")}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 📱 MOBILE: STREAK UNDER BUTTONS */}
+          <div className="block lg:hidden">
+            <StreakCard
+              streak={streak}
+              bestStreak={bestStreak}
+              progress={progress}
+              onClick={isLoggedIn ? () => setShowCalendar(true) : null}
+            />
+          </div>
+
+          {/* 🧠 TASKS */}
           <div className="lg:col-span-2">
             <RoutinePanel>
               <Confetti
@@ -290,20 +256,25 @@ export default function Routine() {
               ) : todayCompleted ? (
                 <DayCompletedCard />
               ) : (
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 max-h-[50vh] overflow-y-auto pr-1 space-y-3">
                   {tasks.map((task) => (
-                    <TaskItem
+                    <div
                       key={task.id}
-                      task={task}
-                      onToggle={() => toggleTask(task.id)}
-                    />
+                      ref={(el) => (taskRefs.current[task.id] = el)}
+                    >
+                      <TaskItem
+                        task={task}
+                        onToggle={() => toggleTask(task.id)}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
             </RoutinePanel>
           </div>
 
-          <div className="space-y-4">
+          {/* 🖥 DESKTOP: RIGHT COLUMN */}
+          <div className="hidden lg:block space-y-4">
             {isGuest && !hideGuestBanner && (
               <GuestBanner
                 onLogin={() => navigate("/login")}
@@ -315,11 +286,7 @@ export default function Routine() {
               streak={streak}
               bestStreak={bestStreak}
               progress={progress}
-              onClick={
-                isLoggedIn
-                  ? () => setShowCalendar(true)
-                  : null
-              }
+              onClick={isLoggedIn ? () => setShowCalendar(true) : null}
             />
           </div>
         </div>
