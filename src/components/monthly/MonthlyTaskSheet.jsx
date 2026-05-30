@@ -44,19 +44,23 @@ function isTaskDone(taskId, day) {
   }
 
   const dateKey = getDateKey(day);
-console.log("MONTH PROGRESS:", monthProgress);
-
-console.log(
-  "May 29:",
-  monthProgress["2026-05-29"]
-);
   const dayData = monthProgress[dateKey];
 
   if (!dayData) {
     return false;
   }
 
-  return (dayData.completedTaskIds || []).includes(taskId);
+  const ids = dayData.completedTaskIds || [];
+
+  // 🐛 BACKWARD COMPATIBILITY FIX: 
+  // If the day was restored via the older Calendar Popup, completedTaskIds might be empty [].
+  // However, we know those restored days had `completed === total` and `total > 0`.
+  // In this case, we check the task if it's within the total count.
+  if (ids.length === 0 && dayData.completed > 0 && dayData.completed === dayData.total) {
+    return true; 
+  }
+
+  return ids.includes(taskId);
 }
 
   return (
