@@ -48,10 +48,13 @@ export default function MonthlyView() {
   useEffect(() => {
     async function fetchMonth() {
       try {
-        const res = await authFetch(
-          `/progress/month?year=${year}&month=${month}`
-        );
-        setMonthProgress(res || {});
+       const res = await authFetch(
+  `/progress/month?year=${year}&month=${month}`
+);
+
+console.log("MONTH API RESPONSE", res);
+
+setMonthProgress(res || {});
       } catch (err) {
         console.error("Fetch month failed:", err);
       } finally {

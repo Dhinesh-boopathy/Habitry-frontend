@@ -38,12 +38,26 @@ export default function MonthlyTaskSheet({
    * - TODAY → task-level (daily state)
    * - PAST/FUTURE → summary only (no task-level info)
    */
-  function isTaskDone(taskId, day) {
-    if (day === todayDate) {
-      return todayCompletedTaskIds.includes(taskId);
-    }
+function isTaskDone(taskId, day) {
+  if (day === todayDate) {
+    return todayCompletedTaskIds.includes(taskId);
+  }
+
+  const dateKey = getDateKey(day);
+console.log("MONTH PROGRESS:", monthProgress);
+
+console.log(
+  "May 29:",
+  monthProgress["2026-05-29"]
+);
+  const dayData = monthProgress[dateKey];
+
+  if (!dayData) {
     return false;
   }
+
+  return (dayData.completedTaskIds || []).includes(taskId);
+}
 
   return (
     <div
