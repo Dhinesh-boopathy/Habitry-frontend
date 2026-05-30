@@ -142,11 +142,13 @@ function isTaskDone(taskId, day) {
                       <input
                         type="checkbox"
                         checked={checked}
-                        disabled={!editable}
+                        readOnly={!editable}
                         onChange={() =>
                           editable && onToggleTodayTask(task.id)
                         }
-                        className="w-4 h-4 accent-blue-600 cursor-pointer"
+                        className={`w-4 h-4 accent-blue-600 ${
+                          !editable ? "opacity-75 pointer-events-none" : "cursor-pointer"
+                        }`}
                       />
                     </td>
                   );
