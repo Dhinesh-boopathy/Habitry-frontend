@@ -15,7 +15,7 @@ export default function MonthlyView() {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
-  const todayKey = today.toISOString().split("T")[0];
+  const todayKey = `${year}-${String(month).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   /* ---------- AUTH ---------- */
   useEffect(() => {
@@ -102,6 +102,7 @@ setMonthProgress(res || {});
       [todayKey]: {
         completed: updatedIds.length,
         total: tasks.length,
+        completedTaskIds: updatedIds,
       },
     }));
   }

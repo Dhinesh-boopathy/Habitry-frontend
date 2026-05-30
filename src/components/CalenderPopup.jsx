@@ -116,12 +116,17 @@ export default function CalendarPopup({ onClose, total = 0 }) {
         date: selectedDay.key,
         completed: total,
         total,
+        completedTaskIds: Array.from({ length: total }, (_, i) => i + 1),
       }),
     });
 
     setProgressByDate((prev) => ({
       ...prev,
-      [selectedDay.key]: { completed: total, total },
+      [selectedDay.key]: { 
+        completed: total, 
+        total, 
+        completedTaskIds: Array.from({ length: total }, (_, i) => i + 1)
+      },
     }));
 
     setActionMsg("Restored ✅");

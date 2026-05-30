@@ -38,9 +38,15 @@ export default function Routine() {
 
   const taskRefs = useRef({});
 
-  const todayKey = () => new Date().toISOString().split("T")[0];
-  const yesterdayKey = () =>
-    new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const todayKey = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  };
+  const yesterdayKey = () => {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, "0")}-${String(y.getDate()).padStart(2, "0")}`;
+  };
 
   /* -------------------- GUEST HELPERS -------------------- */
   const dismissGuestBanner = () => {
