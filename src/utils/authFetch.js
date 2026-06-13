@@ -25,8 +25,18 @@ export async function authFetch(path, options = {}) {
   }
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Request failed");
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const data = await res.json();
+      throw new Error(data.message || data.error || "Request failed");
+    } else {
+      const text = await res.text();
+      // If the response is HTML, don't show the raw HTML to the user
+      if (text.trim().startsWith("<")) {
+        throw new Error(`Server returned ${res.status}: Endpoint might be missing or incorrect.`);
+      }
+      throw new Error(text || "Request failed");
+    }
   }
 
   return res.json();
