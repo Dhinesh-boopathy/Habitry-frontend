@@ -2,7 +2,7 @@ import { API_BASE } from "../config/api";
 
 export async function authFetch(path, options = {}) {
   const token = localStorage.getItem("token");
-
+console.log("Request URL:", `${API_BASE}${path}`);
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
