@@ -20,7 +20,7 @@ export default function DeleteAccount() {
 
     try {
       // NOTE: Using the correct backend route as analyzed from authRoute.js
-      await authFetch("/account", { method: "DELETE" });
+      await authFetch("/auth/account", { method: "DELETE" });
       
       localStorage.removeItem("token");
       localStorage.removeItem("user");
