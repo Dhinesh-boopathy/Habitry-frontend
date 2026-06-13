@@ -11,6 +11,7 @@ import Register from "./components/Register";
 import SavedTemplates from "./pages/SavedTemplates";
 import MonthlySummary from "./pages/MonthlySummary";
 import MonthlyView from "./pages/MonthlyView";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -33,9 +34,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/summary" element={<MonthlySummary />} />
             <Route path="/monthly-sheet" element={<MonthlyView />} />
-
-
-
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
 
