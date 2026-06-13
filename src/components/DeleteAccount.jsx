@@ -19,8 +19,8 @@ export default function DeleteAccount() {
     setError(null);
 
     try {
-      // NOTE: Replace '/users/me' with your actual delete account endpoint if it differs
-      await authFetch("/users/me", { method: "DELETE" });
+      // NOTE: Using the correct backend route as analyzed from authRoute.js
+      await authFetch("/auth/account", { method: "DELETE" });
       
       localStorage.removeItem("token");
       localStorage.removeItem("user");
