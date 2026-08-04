@@ -100,7 +100,7 @@ export default function Login() {
           </div>
 
           {/* Password */}
-          <div className="mb-6">
+          <div className="mb-2">
             <label
               className="block text-sm font-medium mb-1
                          text-slate-700 dark:text-slate-300"
@@ -120,6 +120,15 @@ export default function Login() {
                          focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+          </div>
+
+          <div className="mb-6 text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Forgot password?
+            </Link>
           </div>
 
           {/* Submit */}

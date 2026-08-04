@@ -12,6 +12,8 @@ import SavedTemplates from "./pages/SavedTemplates";
 import MonthlySummary from "./pages/MonthlySummary";
 import MonthlyView from "./pages/MonthlyView";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="/create-routine" element={<CreateRoutine />} />
             <Route path="/saved-templates" element={<SavedTemplates />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/summary" element={<MonthlySummary />} />
