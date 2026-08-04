@@ -19,8 +19,15 @@ export default function ForgotPassword() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : null;
+      if (!response.ok || !data?.message) {
+        throw new Error(
+          data?.message || "Password reset is temporarily unavailable. Please try again later."
+        );
+      }
       setMessage(data.message);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
